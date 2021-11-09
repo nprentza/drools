@@ -16,52 +16,41 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SimpleBeliefSystemTest {
-    @Test
-    public void testBeliefSystem() {
-        //"import org.drools.core.beliefsystem.simple.*; \n" +
-        String drl = "package org.drools.mvel; \n " +
-                "import " + BankAccount.class.getCanonicalName() + "; \n"  +
-                "import " + Memento.class.getCanonicalName() + "; \n"  +
-                "import " + Map.class.getCanonicalName() + "; \n" +
-                "import " + HashMap.class.getCanonicalName() + "; \n" +
-                "import " + Request.class.getCanonicalName() + "; \n" +
-                " " +
-                "rule rule1 when " +
-                "     String( this == 'rule1') \n" +
-                "     r : Request()" +
-                "then " +
-                "    System.out.println(\"rule 1\"); \n" +
-                "   Map<String,Object> m = new HashMap<>(); \n " +
-                "       m.put(\"balance\",(float)100.0); \n " +
-                "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
-                "end " +
-                "rule rule2 when " +
-                "     String( this == 'rule2') \n" +
-                "     r : Request()" +
-                "then " +
-                "    System.out.println(\"rule 2\"); \n" +
-                "   Map<String,Object> m = new HashMap<>(); \n " +
-                "       m.put(\"balance\",(float)99.0); \n " +
-                "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
-                "end " +
-                "rule rule3 when " +
-                "     String( this == 'rule3') \n" +
-                "     r : Request()" +
-                "then " +
-                "    System.out.println(\"rule 3\"); \n" +
-                "   Map<String,Object> m = new HashMap<>(); \n " +
-                "       m.put(\"balance\",(float)50.0); \n " +
-                "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
-                "end " +
-                "\n";
-
-        // Testing Scenarios
-
-        //this.testScenario_0(drl);
-        //this.testScenario_1(drl);
-        //this.testScenario_2(drl);
-        this.testScenario_3(drl);
-    }
+    private String drl = "package org.drools.mvel; \n " +
+            "import " + BankAccount.class.getCanonicalName() + "; \n"  +
+            "import " + Memento.class.getCanonicalName() + "; \n"  +
+            "import " + Map.class.getCanonicalName() + "; \n" +
+            "import " + HashMap.class.getCanonicalName() + "; \n" +
+            "import " + Request.class.getCanonicalName() + "; \n" +
+            " " +
+            "rule rule1 when " +
+            "     String( this == 'rule1') \n" +
+            "     r : Request()" +
+            "then " +
+            "    System.out.println(\"rule 1\"); \n" +
+            "   Map<String,Object> m = new HashMap<>(); \n " +
+            "       m.put(\"balance\",(float)100.0); \n " +
+            "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
+            "end " +
+            "rule rule2 when " +
+            "     String( this == 'rule2') \n" +
+            "     r : Request()" +
+            "then " +
+            "    System.out.println(\"rule 2\"); \n" +
+            "   Map<String,Object> m = new HashMap<>(); \n " +
+            "       m.put(\"balance\",(float)99.0); \n " +
+            "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
+            "end " +
+            "rule rule3 when " +
+            "     String( this == 'rule3') \n" +
+            "     r : Request()" +
+            "then " +
+            "    System.out.println(\"rule 3\"); \n" +
+            "   Map<String,Object> m = new HashMap<>(); \n " +
+            "       m.put(\"balance\",(float)50.0); \n " +
+            "    insertLogical( new Memento(kcontext.getKieRuntime().getFactHandle(r.getBa()), m) ); \n " +
+            "end " +
+            "\n";
 
     // basic testing
     public void testScenario_0(String drl){
@@ -109,15 +98,16 @@ public class SimpleBeliefSystemTest {
     // 1.1) enable one rule, then modify is made.
     // 1.2) disable the rule, and enable the next.
     // 1.3) disable rule to and enable rule 3.
-    public  void testScenario_1(String drl){
-        KieSession kSession = getSessionFromString( drl );
+    @Test
+    public  void testScenario_1(){
+        KieSession kSession = getSessionFromString( this.drl );
 
         BankAccount baAbc = new BankAccount("123456789","Account Abc",0);
         FactHandle fh_baAbc = kSession.insert(baAbc);
         Request abc = new Request(baAbc);
         kSession.insert(abc);
 
-        System.out.println("Test Scenario 1: enable rule1, disable rule1, enable rule2, disable rule2, enable rule3.");
+        System.out.println("\nTest Scenario 1: enable rule1, disable rule1, enable rule2, disable rule2, enable rule3.");
 
         // 1.1) enable rule1
         FactHandle fh_rule1 = kSession.insert("rule1");
@@ -147,20 +137,20 @@ public class SimpleBeliefSystemTest {
             Assert.assertEquals("Balance after disabling rule2 & enabling rule3 is not 50 as expected.\n",50f, (float) baAbc.getBalance(), 0.0);
         }catch (AssertionError e){
             System.out.println(e.getMessage());
-        }
-    }
+        }}
 
     //2.1) enable first rule 2.2) enable second rule 2.3) enable third rule. 2.4) disable first rule.
     //2.2 and 2.3 should result in no change. the quality is added to the set, but the prime does not change. 2.4 should result in a prime change, and the second rule's value is approved.
-    public void testScenario_2(String drl){
-        KieSession kSession = getSessionFromString( drl );
+    @Test
+    public void testScenario_2(){
+        KieSession kSession = getSessionFromString( this.drl );
 
         BankAccount baAbc = new BankAccount("123456789","Account Abc",0);
         FactHandle fh_baAbc = kSession.insert(baAbc);
         Request abc = new Request(baAbc);
         kSession.insert(abc);
 
-        System.out.println("Test Scenario 2: enable rule1, enable rule2, enable rule3, disable rule1.");
+        System.out.println("\n\nTest Scenario 2: enable rule1, enable rule2, enable rule3, disable rule1.");
 
         // 2.1) enable rule1
         FactHandle fh_rule1 = kSession.insert("rule1");
@@ -202,15 +192,16 @@ public class SimpleBeliefSystemTest {
 
     // 3) is almost the same as 2. but this time enable rule1, then enable rule3 then rule2.
     // just trying to show it's not rule order in the drl file - but the order of activation that specifies the priority.
-   public void testScenario_3(String drl){
-       KieSession kSession = getSessionFromString( drl );
+    @Test
+    public void testScenario_3(){
+       KieSession kSession = getSessionFromString(this.drl );
 
        BankAccount baAbc = new BankAccount("123456789","Account Abc",0);
        FactHandle fh_baAbc = kSession.insert(baAbc);
        Request abc = new Request(baAbc);
        kSession.insert(abc);
 
-       System.out.println("Test Scenario 3: enable rule1, enable rule3, enable rule2, disable rule1.");
+       System.out.println("\n\nTest Scenario 3: enable rule1, enable rule3, enable rule2, disable rule1.");
 
        // 2.1) enable rule1
        FactHandle fh_rule1 = kSession.insert("rule1");
