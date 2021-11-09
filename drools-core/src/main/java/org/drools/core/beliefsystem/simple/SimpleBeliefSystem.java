@@ -68,11 +68,18 @@ public class SimpleBeliefSystem
 
         InternalFactHandle bfh = beliefSet.getFactHandle();
         if ( empty && bfh.getEqualityKey().getStatus() == EqualityKey.JUSTIFIED ) {
-            ep.insert( bfh,
-                       bfh.getObject(),
-                       node.getJustifier().getRule(),
-                       node.getJustifier().getTuple().getTupleSink(),
-                       typeConf );
+            // ** FAI-642
+            if (bfh.getObject() instanceof Memento){
+                Memento m = (Memento) bfh.getObject();
+                m.update();
+                ep.update(m.getFactHandle(),m.getFactHandle().getObject());
+            }else {
+                ep.insert( bfh,
+                        bfh.getObject(),
+                        node.getJustifier().getRule(),
+                        node.getJustifier().getTuple().getTupleSink(),
+                        typeConf );
+            } // FAI-642 **
         }
         return beliefSet;
     }
@@ -90,11 +97,18 @@ public class SimpleBeliefSystem
 
         InternalFactHandle bfh = beliefSet.getFactHandle();
         if ( empty && bfh.getEqualityKey().getStatus() == EqualityKey.JUSTIFIED ) {
-            ep.insert( bfh,
-                       bfh.getObject(),
-                       rule,
-                       activation != null ? activation.getTuple().getTupleSink() : null,
-                       typeConf );
+            // ** FAI-642
+            if (bfh.getObject() instanceof Memento){
+                Memento m = (Memento) bfh.getObject();
+                m.update();
+                ep.update(m.getFactHandle(),m.getFactHandle().getObject());
+            }else {
+                ep.insert(bfh,
+                        bfh.getObject(),
+                        rule,
+                        activation != null ? activation.getTuple().getTupleSink() : null,
+                        typeConf);
+            } // FAI-642 **
         }
         return beliefSet;
     }
@@ -121,14 +135,32 @@ public class SimpleBeliefSystem
         InternalFactHandle bfh = beliefSet.getFactHandle();
 
         if ( beliefSet.isEmpty() && bfh.getEqualityKey() != null && bfh.getEqualityKey().getStatus() == EqualityKey.JUSTIFIED ) {
-            ep.delete(bfh, bfh.getObject(), getObjectTypeConf(beliefSet), context.getRuleOrigin(),
-                      null, activation != null ? activation.getTuple().getTupleSink() : null);
-        } else if ( !beliefSet.isEmpty() && bfh.getObject() == payload && payload != bfh.getObject() ) {
-            // prime has changed, to update new object
-            // Equality might have changed on the object, so remove (which uses the handle id) and add back in
-            WorkingMemoryEntryPoint ep = bfh.getEntryPoint(this.ep.getInternalWorkingMemory());
-            ep.getObjectStore().updateHandle(bfh, beliefSet.getFirst().getObject().getObject());
-            ep.update( bfh, bfh.getObject(), allSetButTraitBitMask(), Object.class, null );
+            // ** FAI-642
+            if (bfh.getObject() instanceof Memento){
+                Memento m = (Memento) bfh.getObject();
+                m.restore();
+                ep.update(m.getFactHandle(),m.getFactHandle().getObject());
+            }else {
+                ep.delete(bfh, bfh.getObject(), getObjectTypeConf(beliefSet), context.getRuleOrigin(),
+                        null, activation != null ? activation.getTuple().getTupleSink() : null);
+            }// FAI-642 **
+        } else if ( !beliefSet.isEmpty() && bfh.getObject() == payload) {
+            // else if ( !beliefSet.isEmpty() && bfh.getObject() == payload && payload != bfh.getObject() ) { //@TODO need to review (mdp)
+            // ** FAI-642
+            if (bfh.getObject() instanceof Memento){
+                Memento m = (Memento) bfh.getObject();
+                m.restore();
+                ep.getObjectStore().updateHandle(bfh,beliefSet.getFirst().getObject().getObject());
+                m = (Memento)bfh.getObject();
+                m.update();
+                ep.update(m.getFactHandle(),m.getFactHandle().getObject());
+            }else {
+                // prime has changed, to update new object
+                // Equality might have changed on the object, so remove (which uses the handle id) and add back in
+                WorkingMemoryEntryPoint ep = bfh.getEntryPoint(this.ep.getInternalWorkingMemory());
+                ep.getObjectStore().updateHandle(bfh, beliefSet.getFirst().getObject().getObject());
+                ep.update(bfh, bfh.getObject(), allSetButTraitBitMask(), Object.class, null);
+            }// FAI-642 **
         }
 
         if ( beliefSet.isEmpty() && bfh.getEqualityKey() != null ) {

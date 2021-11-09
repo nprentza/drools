@@ -1,0 +1,51 @@
+package org.drools.mvel;
+
+public class BankAccount {
+  private String accountNo;
+  private String accountName;
+  private float balance;
+
+  // do we need this?
+  // its just the container to copy fields from Originator to Memento
+  // HashMap<String, Object> state;
+
+  public BankAccount(String accNo, String accName, float initBalance) {
+    this.accountNo = accNo;
+    this.accountName = accName;
+    this.balance = initBalance;
+  }
+
+  public String accountSummary(){
+    return "accountNo=" + this.accountNo + ", accountName=" + this.accountName + ", Balance=" + this.balance;
+  }
+
+  public void debit(float amount) {
+    this.balance -= amount;
+  }
+
+  public void credit(float amount) {
+    this.balance += amount;
+  }
+
+  // set/get fields
+  // set:
+  public void setAccountNo(String accNo) {
+    this.accountNo = accNo;
+  }
+  public void setAccountName(String accName) {
+    this.accountName = accName;
+  }
+  public void setBalance(float balance) {
+    this.balance = balance;
+  }
+  // get:
+  public String getAccountNo() {
+    return this.accountNo;
+  }
+  public String getAccountName() {
+    return this.accountName;
+  }
+  public float getBalance() {
+    return this.balance;
+  }
+}
