@@ -1,5 +1,7 @@
 package org.drools.mvel;
 
+import org.drools.core.beliefsystem.simple.Memento;
+
 public class BankAccount {
   private String accountNo;
   private String accountName;
@@ -48,4 +50,25 @@ public class BankAccount {
   public float getBalance() {
     return this.balance;
   }
+
+  public int hashCode() {
+    int result = this.accountNo.hashCode();
+    result = 31 * result + this.accountName.hashCode();
+    return result;
+  }
+
+  public boolean equals(Object o) {
+
+    if (!(o instanceof BankAccount)) {
+      return false;
+    }
+
+    BankAccount ba = (BankAccount)o;
+    if (ba.accountName != this.accountName) {
+      return false;
+    }else if (ba.accountNo != this.accountNo){
+      return false;
+    }else {return true;}
+  }
+
 }
