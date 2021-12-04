@@ -1,6 +1,4 @@
-package org.drools.mvel;
-
-import org.drools.core.beliefsystem.simple.Memento;
+package org.drools.mvel.temp;
 
 public class BankAccount {
   private String accountNo;

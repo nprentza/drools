@@ -41,9 +41,6 @@ public class Memento {
                     else
                         stateRestore.put(pd.getName(),null);
                 }
-                // The following two(2) lines replaced by the Introspector part above
-                //Method m = instance.getObject().getClass().getDeclaredMethod("getBalance", new Class[0]);
-                //stateRestore.put("balance", m.invoke(instance.getObject()));
             } catch (IllegalAccessException | InvocationTargetException | IntrospectionException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -62,9 +59,7 @@ public class Memento {
                     if (pd.getWriteMethod() != null && stateRequired.get(pd.getName())!=null)
                         pd.getWriteMethod().invoke(instance.getObject(), stateRequired.get(pd.getName()));
                 }
-                // The following two(2) lines replaced by the Introspector part above
-                //Method m = instance.getObject().getClass().getDeclaredMethod("setBalance", new Class[]{float.class});
-                //m.invoke(instance.getObject(), (float)stateRequired.get("balance"));
+
             } catch (IllegalAccessException | InvocationTargetException | IntrospectionException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
@@ -82,9 +77,6 @@ public class Memento {
                     else
                         pd.getWriteMethod().invoke(instance.getObject(), null);
                 }
-                // The following two(2) lines replaced by the Introspector part above
-                // Method m = instance.getObject().getClass().getDeclaredMethod("setBalance", new Class[]{float.class});
-                // m.invoke((float) stateRestore.get("balance"));
             } catch (IllegalAccessException | InvocationTargetException | IntrospectionException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);
