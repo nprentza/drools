@@ -1,8 +1,9 @@
-package org.drools.mvel;
+package org.drools.mvel.temp;
 
 import org.drools.core.beliefsystem.simple.Memento;
 import org.drools.core.impl.InternalKnowledgeBase;
 import org.drools.core.impl.KnowledgeBaseFactory;
+import org.drools.mvel.temp.BankAccount;
 import org.junit.Assert;
 import org.kie.api.io.ResourceType;
 import org.kie.api.runtime.KieSession;
@@ -16,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SimpleBeliefSystemTest {
-    private String drl = "package org.drools.mvel; \n " +
+    private String drl = "package org.drools.mvel.temp; \n " +
             "import " + BankAccount.class.getCanonicalName() + "; \n"  +
             "import " + Memento.class.getCanonicalName() + "; \n"  +
             "import " + Map.class.getCanonicalName() + "; \n" +
@@ -52,38 +53,6 @@ public class SimpleBeliefSystemTest {
             "end " +
             "\n";
 
-    private String drl_noMemento = "package org.drools.mvel; \n " +
-            "import " + BankAccount.class.getCanonicalName() + "; \n"  +
-            "import " + Memento.class.getCanonicalName() + "; \n"  +
-            "import " + Map.class.getCanonicalName() + "; \n" +
-            "import " + HashMap.class.getCanonicalName() + "; \n" +
-            "import " + Request.class.getCanonicalName() + "; \n" +
-            " " +
-            "rule rule1 when " +
-            "     String( this == 'rule1') \n" +
-            "     r : Request()" +
-            "then " +
-            "    System.out.println(\"rule 1\"); \n" +
-            "    r.getBa().setBalance(100); \n" +
-            "    insertLogical( kcontext.getKieRuntime().getFactHandle(r.getBa()) ) ; \n " +
-            "end " +
-            "rule rule2 when " +
-            "     String( this == 'rule2') \n" +
-            "     r : Request()" +
-            "then " +
-            "    System.out.println(\"rule 2\"); \n" +
-            "    r.getBa().setBalance(99); \n" +
-            "    insertLogical( kcontext.getKieRuntime().getFactHandle(r.getBa()) ); \n " +
-            "end " +
-            "rule rule3 when " +
-            "     String( this == 'rule3') \n" +
-            "     r : Request()" +
-            "then " +
-            "    System.out.println(\"rule 3\"); \n" +
-            "    r.getBa().setBalance(50); \n" +
-            "    insertLogical( kcontext.getKieRuntime().getFactHandle(r.getBa()) ); \n " +
-            "end " +
-            "\n";
 
     // basic testing
     public void testScenario_0(String drl){
@@ -174,6 +143,7 @@ public class SimpleBeliefSystemTest {
 
     //2.1) enable first rule 2.2) enable second rule 2.3) enable third rule. 2.4) disable first rule.
     //2.2 and 2.3 should result in no change. the quality is added to the set, but the prime does not change. 2.4 should result in a prime change, and the second rule's value is approved.
+
     @Test
     public void testScenario_2(){
         KieSession kSession = getSessionFromString( this.drl );
@@ -221,55 +191,6 @@ public class SimpleBeliefSystemTest {
         }catch (AssertionError e){
             System.out.println(e.getMessage());
         }
-    }
-
-    @Test
-    public void testScenario_2_noMemento(){
-        KieSession kSession = getSessionFromString( this.drl_noMemento );
-
-        BankAccount baAbc = new BankAccount("123456789","Account Abc",0);
-        FactHandle fh_baAbc = kSession.insert(baAbc);
-        Request abc = new Request(baAbc);
-        kSession.insert(abc);
-
-        System.out.println("\n\nTest Scenario 2-noMemento: enable rule1, enable rule2, enable rule3, disable rule1.");
-
-        // 2.1) enable rule1
-        FactHandle fh_rule1 = kSession.insert("rule1");
-        kSession.fireAllRules();
-        System.out.println("rule1 enabled - Bank account summary: " + baAbc.accountSummary());
-        /*try{
-            Assert.assertEquals ("Balance after enabling rule1 is not 100, as expected.\n",100f, baAbc.getBalance(),0.0);
-        }catch (AssertionError e){
-            System.out.println(e.getMessage());
-        }*/
-        // 2.2) enable rule2
-        FactHandle fh_rule2 = kSession.insert("rule2");
-        kSession.fireAllRules();
-        System.out.println("rule2 enabled - Bank account summary: " + baAbc.accountSummary());
-        /*try{
-            Assert.assertEquals ("Balance after enabling rule2 is not 100, as expected.\n",100f, baAbc.getBalance(),0.0);
-        }catch (AssertionError e){
-            System.out.println(e.getMessage());
-        }*/
-        // 2.3) enable rule3
-        FactHandle fh_rule3 = kSession.insert("rule3");
-        kSession.fireAllRules();
-        System.out.println("rule3 enabled - Bank account summary: " + baAbc.accountSummary());
-        /*try{
-            Assert.assertEquals ("Balance after enabling rule3 is not 100, as expected.\n",100f, baAbc.getBalance(),0.0);
-        }catch (AssertionError e){
-            System.out.println(e.getMessage());
-        }*/
-        // 2.4) disable rule1
-        kSession.delete(fh_rule1);
-        kSession.fireAllRules();
-        System.out.println("rule1 disabled - Bank account summary: " + baAbc.accountSummary());
-        /*try{
-            Assert.assertEquals ("Balance after disabling rule1 is not 99, as expected.\n",99f, baAbc.getBalance(),0.0);
-        }catch (AssertionError e){
-            System.out.println(e.getMessage());
-        }*/
     }
 
     // 3) is almost the same as 2. but this time enable rule1, then enable rule3 then rule2.

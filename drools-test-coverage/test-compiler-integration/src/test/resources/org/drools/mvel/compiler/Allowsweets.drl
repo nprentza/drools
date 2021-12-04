@@ -1,0 +1,20 @@
+package org.drools.mvel.temp;
+
+import org.drools.mvel.temp.Person;
+import org.drools.mvel.temp.AllowSweets;
+
+rule AllowAll when
+    p : Person()
+then
+    System.out.println("Allow all");
+    insertLogical( new AllowSweets(p) );
+end
+
+rule DoNotAllowOnDiet when
+    p : Person( onDiet == "True" )
+then
+    System.out.println("DoNotAllowOnDiet");
+    insertLogical( new AllowSweets(p), "neg" );
+end
+
+
