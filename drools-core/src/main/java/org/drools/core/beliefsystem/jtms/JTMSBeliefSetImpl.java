@@ -22,6 +22,11 @@ import org.drools.core.common.WorkingMemoryAction;
 import org.drools.core.spi.PropagationContext;
 import org.drools.core.util.LinkedList;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+
+// , BeliefSetConflict<M>
 public class JTMSBeliefSetImpl<M extends JTMSMode<M>> extends LinkedList<M> implements JTMSBeliefSet<M> {
 
     private BeliefSystem<M> beliefSystem;
@@ -33,9 +38,84 @@ public class JTMSBeliefSetImpl<M extends JTMSMode<M>> extends LinkedList<M> impl
     private int posCounter = 0;
     private int negCounter = 0;
 
+    // FAI-687
+    private Map<String, Object> conflicts;
+
     public JTMSBeliefSetImpl(BeliefSystem<M> beliefSystem, InternalFactHandle rootHandle) {
         this.beliefSystem = beliefSystem;
         this.rootHandle = rootHandle;
+        // FAI-687
+        this.conflicts = new HashMap<>();
+    }
+
+    // FAI-687
+    public void addConflict(String negCommandId, String posCommandId){
+        ArrayList<String> posCommands = new ArrayList<String>();
+        if (conflicts.get(negCommandId) != null) {
+            posCommands = (ArrayList<String>) conflicts.get(negCommandId);
+            this.conflicts.remove(negCommandId);
+        }
+        posCommands.add(posCommandId);
+        this.conflicts.put(negCommandId, posCommands);
+    }
+    // FAI-687
+    public void removeConflict_NegCommand(String negCommandId){
+        if (conflicts.get(negCommandId) != null) {
+            this.conflicts.remove(negCommandId);
+        }
+    }
+    // FAI-687
+    public void removeConflict_PosCommand(String posCommandId){
+        ArrayList<String> posCommands = new ArrayList<String>();
+       for (Map.Entry<String, Object> entry : conflicts.entrySet()){
+           posCommands = (ArrayList<String>) entry.getValue();
+           if (posCommands.contains(posCommandId)){
+               posCommands.remove(posCommandId);
+               conflicts.remove(entry.getKey());
+               conflicts.put(entry.getKey(),posCommands);
+           }
+       }
+    }
+    // FAI-687
+    public ArrayList<String> getConflicts(String negCommandId){
+        ArrayList<String> posCommands = new ArrayList<String>();
+        if (conflicts.get(negCommandId) != null) {
+            posCommands = (ArrayList<String>) conflicts.get(negCommandId);
+        }
+        return posCommands;
+    }
+    // FAI-687
+    public boolean posCommandInConflict(String posCommandId){
+        boolean inConflict = false;
+
+        for (Map.Entry<String, Object> entry : conflicts.entrySet()){
+            if (((ArrayList<String>) entry.getValue()).contains(posCommandId)){
+                inConflict = true;
+                break;
+            }
+        }
+
+        return inConflict;
+    }
+    // FAI-687
+    public boolean commandInConflict(String commandId, String value){
+        boolean inConflict = false;
+
+        for (Map.Entry<String, Object> entry : conflicts.entrySet()){
+            if (value.equals("pos")){
+                if (((ArrayList<String>) entry.getValue()).contains(commandId)){
+                    inConflict = true;
+                    break;
+                }
+            }else {
+                if (entry.getKey().equals(commandId)){
+                    inConflict = true;
+                    break;
+                }
+            }
+
+        }
+        return inConflict;
     }
 
     public JTMSBeliefSetImpl() {
@@ -81,7 +161,9 @@ public class JTMSBeliefSetImpl<M extends JTMSMode<M>> extends LinkedList<M> impl
     
     @Override
     public boolean isNegated() {
-        return posCounter == 0 && negCounter > 0;
+        // FAI-687
+        //return posCounter == 0 && negCounter > 0;
+        return negCounter > 0;
     }
 
     @Override

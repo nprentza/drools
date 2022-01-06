@@ -4,10 +4,21 @@ public class Person {
     private String name;
     private String onDiet;
     private String allowDenySweets; // "allow" or "deny"
+    private String cheatDay;
 
     public Person(String name, String onDiet) {
         this.name = name;
         this.onDiet = onDiet;
+        this.allowDenySweets = "tbd";
+        this.cheatDay = "tbd";
+    }
+
+    public void setCheatDay(String day){
+        this.cheatDay = day;
+    }
+
+    public String getCheatDay(){
+        return this.cheatDay;
     }
 
     public String getName() {
@@ -26,11 +37,11 @@ public class Person {
         this.onDiet = onDiet;
     }
 
-    public String getAllowSweets(){
+    public String getAllowDenySweets(){
         return this.allowDenySweets;
     }
 
-    public void setAllowSweets(String allowOrDeny){
+    public void setAllowDenySweets(String allowOrDeny){
         this.allowDenySweets = allowOrDeny;
     }
     @Override
