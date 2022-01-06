@@ -19,14 +19,12 @@ public class UpdateRestoreCommand {
     private DefaultFactHandle instance;
     private Map<String, Object> stateRestore;
     private Map<String, Object> stateRequired;
-    private Integer changesStatus; // 0:Pending, 1:Applied, 2:Restored
     private String commandId;
 
     public UpdateRestoreCommand(FactHandle instance, Map<String, Object> stateRequired) {
         this.instance = (DefaultFactHandle) instance;
         this.stateRestore = new HashMap<>();
         this.stateRequired = stateRequired;
-        this.changesStatus = 0;
         this.commandId = Long.toString(new Date().getTime());
     }
 
@@ -71,7 +69,6 @@ public class UpdateRestoreCommand {
                     pd.getWriteMethod().invoke(instance.getObject(), stateRequired.get(pd.getName()));
             }
             // update changesStatus to indicate that changes have been applied
-            this.changesStatus = 1;
         } catch (IllegalAccessException | InvocationTargetException | IntrospectionException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -96,20 +93,16 @@ public class UpdateRestoreCommand {
 
     // for each property in stateRequired, restore its value from the stateRestore
     public void restoreStateRequired() {
-        boolean propertyUpdate = false;
         try {
             BeanInfo info = Introspector.getBeanInfo(instance.getObject().getClass(), Object.class);
             for ( PropertyDescriptor pd : info.getPropertyDescriptors() ) {
                 if (stateRequired.keySet().contains(pd.getName())){
                     if (pd.getWriteMethod() != null){
                         pd.getWriteMethod().invoke(instance.getObject(), stateRestore.get(pd.getName()));
-                        propertyUpdate = true;
                     }
                 }
             }
             // update changesStatus to indicate restore
-            if (propertyUpdate) {this.changesStatus = 2;}
-
         } catch (IllegalAccessException | InvocationTargetException | IntrospectionException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -171,15 +164,5 @@ public class UpdateRestoreCommand {
         return (unionKeys.size() != (upRCommand.stateRequired.keySet().size()+this.stateRequired.keySet().size()));
 
     }
-
-    /*
-    public boolean stateRequiredApplied(){
-        return (this.changesStatus == 1) ;
-    }
-
-    public boolean stateRequiredRestored(){
-        return (this.changesStatus==2);
-    }
-    */
 
 }
