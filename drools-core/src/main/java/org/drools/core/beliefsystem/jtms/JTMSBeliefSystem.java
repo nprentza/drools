@@ -19,6 +19,7 @@ import org.drools.core.WorkingMemoryEntryPoint;
 import org.drools.core.beliefsystem.BeliefSet;
 import org.drools.core.beliefsystem.BeliefSystem;
 import org.drools.core.beliefsystem.jtms.JTMSBeliefSetImpl.MODE;
+import org.drools.core.beliefsystem.simple.Memento;
 import org.drools.core.beliefsystem.simple.SimpleLogicalDependency;
 import org.drools.core.common.EqualityKey;
 import org.drools.core.common.InternalFactHandle;
@@ -30,8 +31,11 @@ import org.drools.core.definitions.rule.impl.RuleImpl;
 import org.drools.core.reteoo.ObjectTypeConf;
 import org.drools.core.spi.Activation;
 import org.drools.core.spi.PropagationContext;
+import org.kie.api.runtime.rule.FactHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
 
 import static org.drools.core.reteoo.PropertySpecificUtil.allSetButTraitBitMask;
 
@@ -54,10 +58,91 @@ public class JTMSBeliefSystem<M extends JTMSMode<M>>
         return this.tms;
     }
 
-    @Override
+    // FAI-687:
+    private BeliefSet<M> insert_UpdateCommand( M mode, RuleImpl rule, Activation activation, Object payload, BeliefSet<M> beliefSet, PropagationContext context, ObjectTypeConf typeConf ) {
+
+        //JTMSBeliefSet jtmsBeliefSet = (JTMSBeliefSet) beliefSet;
+        JTMSBeliefSetImpl jtmsBeliefSet = (JTMSBeliefSetImpl) beliefSet;
+
+        boolean wasEmpty = jtmsBeliefSet.isEmpty();
+        boolean hadNegCommands = jtmsBeliefSet.isNegated();
+        InternalFactHandle fh =  jtmsBeliefSet.getFactHandle();
+
+        jtmsBeliefSet.add( mode );
+
+        UpdateRestoreCommand obj = (UpdateRestoreCommand) mode.getLogicalDependency().getObject();
+        //UpdateRestoreCommand obj = (UpdateRestoreCommand) fh.getObject();
+
+        if (wasEmpty){
+            // if the command inserted is positive then we apply the changes to the instance of the object
+            if (mode.getValue().equals("pos")){
+                obj.update();
+                ep.update(obj.getFactHandle(),obj.getFactHandle().getObject());
+            }
+            // insert the object into the wm ??
+            ep.insert(obj.getFactHandle(),
+                    payload,
+                    rule,
+                    activation != null ? activation.getTuple().getTupleSink() : null,
+                    typeConf);
+        }else { // we need to check for conflicts first
+            if (mode.getValue().equals("neg")){
+                // the new update is an update with negation
+                //      we need to check for conflicts with previous positive commands,
+                //          if such commands are found, we need to undo the changes applied to the instance of the object
+                //JTMSMode lastNode= (JTMSMode) jtmsBeliefSet.getLast();
+                JTMSMode lastNode= (JTMSMode) jtmsBeliefSet.getLast(); //
+                JTMSMode prevNode= (JTMSMode) jtmsBeliefSet.getFirst(); //
+                while (prevNode!=null && !prevNode.equals(lastNode)){
+                    // check for conflicts with previous positive commands
+                    if (prevNode.getValue().equals("pos")){
+                        if (conflictsInPropertyUpdates(lastNode, prevNode)){
+                            // restore changes applied by prevNode
+                            UpdateRestoreCommand upRCommObj = (UpdateRestoreCommand) prevNode.getLogicalDependency().getObject();
+                            upRCommObj.restoreStateRequired();
+                            ep.update(upRCommObj.getFactHandle(),upRCommObj.getFactHandle().getObject());
+                            // add conflict reference
+                            jtmsBeliefSet.addConflict(((UpdateRestoreCommand) lastNode.getLogicalDependency().getObject()).getCommandId(), upRCommObj.getCommandId());
+                        }
+                    }
+                    prevNode = (JTMSMode) prevNode.getNext();
+                }
+            } else { // mode.getValue() == "pos"
+                boolean applyUpdates = true;
+                if (hadNegCommands){
+                    // we need to check for conflicts with previous negative commands,
+                    //  if conflicts then we don't apply the updates of the command
+                    JTMSMode lastNode= (JTMSMode) jtmsBeliefSet.getFirst();
+                    JTMSMode prevNode= (JTMSMode) lastNode.getNext();
+                    while (prevNode!=null && !prevNode.equals(lastNode)){
+                        if (prevNode.getValue().equals("neg")) {
+                            if (conflictsInPropertyUpdates(lastNode, prevNode)) {
+                                applyUpdates = false;
+                                // add conflict reference
+                                jtmsBeliefSet.addConflict(((UpdateRestoreCommand) prevNode.getLogicalDependency().getObject()).getCommandId(), ((UpdateRestoreCommand) lastNode.getLogicalDependency().getObject()).getCommandId());
+                                break;
+                            }
+                        }
+                        prevNode = (JTMSMode) prevNode.getNext();
+                    }
+                }
+                if (applyUpdates) {
+                    obj.update();
+                    ep.update(obj.getFactHandle(),obj.getFactHandle().getObject());
+                }
+            }
+        }
+        return beliefSet;
+    }
+
+        @Override
     public BeliefSet<M> insert( M mode, RuleImpl rule, Activation activation, Object payload, BeliefSet<M> beliefSet, PropagationContext context, ObjectTypeConf typeConf ) {
         if ( log.isTraceEnabled() ) {
             log.trace( "TMSInsert {} {}", payload, mode.getValue() );
+        }
+        // FAI-687
+        if (mode.getLogicalDependency().getObject() instanceof UpdateRestoreCommand){
+            return insert_UpdateCommand(mode,rule,activation,payload, beliefSet, context, typeConf);
         }
 
         JTMSBeliefSet jtmsBeliefSet = (JTMSBeliefSet) beliefSet;
@@ -80,10 +165,10 @@ public class JTMSBeliefSystem<M extends JTMSMode<M>>
 
         if ( wasEmpty && jtmsBeliefSet.isDecided()  ) {
             ep.insert(jtmsBeliefSet.getFactHandle(),
-                      payload,
-                      rule,
-                      activation != null ? activation.getTuple().getTupleSink() : null,
-                      typeConf);
+                    payload,
+                    rule,
+                    activation != null ? activation.getTuple().getTupleSink() : null,
+                    typeConf);
         } else {
             processBeliefSet(rule, activation, payload, context, jtmsBeliefSet, wasDecided,wasNegated, fh);
         }
@@ -116,6 +201,11 @@ public class JTMSBeliefSystem<M extends JTMSMode<M>>
     public void delete( M mode, RuleImpl rule, Activation activation, Object payload, BeliefSet<M> beliefSet, PropagationContext context ) {
         if ( log.isTraceEnabled() ) {
             log.trace( "TMSDelete {} {}", payload, mode.getValue() );
+        }
+        // FAI-687
+        if (mode.getLogicalDependency().getObject() instanceof UpdateRestoreCommand){
+            delete_updateCommand(mode,rule,activation,payload, beliefSet, context);
+            return;
         }
 
         JTMSBeliefSet<M> jtmsBeliefSet = (JTMSBeliefSet<M>) beliefSet;
@@ -189,6 +279,80 @@ public class JTMSBeliefSystem<M extends JTMSMode<M>>
         }
     }
 
+    // FAI-687
+    private void delete_updateCommand( M mode, RuleImpl rule, Activation activation, Object payload, BeliefSet<M> beliefSet, PropagationContext context ){
+
+        JTMSBeliefSetImpl<M> jtmsBeliefSet = (JTMSBeliefSetImpl<M>) beliefSet;
+
+        InternalFactHandle fh =  jtmsBeliefSet.getFactHandle();
+
+        // todo: remove from beliefSet at the end of the process ???
+        beliefSet.remove( mode );
+
+        UpdateRestoreCommand obj = (UpdateRestoreCommand) mode.getLogicalDependency().getObject();
+
+        boolean commandInConflict = jtmsBeliefSet.commandInConflict(obj.getCommandId(),mode.getValue());
+
+        // TODO:
+        if (commandInConflict){
+            UpdateRestoreCommand firstObj;
+            if (mode.getValue().equals("neg")){
+                // get positive commands in conflict with this negative command
+                //  apply there updates
+                ArrayList<String> posCommansInConflict = jtmsBeliefSet.getConflicts(obj.getCommandId());
+                JTMSMode firstNode= (JTMSMode) jtmsBeliefSet.getLast();
+                while (firstNode!=null && firstNode.getValue().equals("pos")){
+                    firstObj = (UpdateRestoreCommand) firstNode.getLogicalDependency().getObject();
+                    if (posCommansInConflict.contains(firstObj.getCommandId())){
+                        firstObj.update();
+                        ep.update(firstObj.getFactHandle(),firstObj.getFactHandle().getObject());
+                    }
+                    firstNode = (JTMSMode) firstNode.getPrevious();
+                }
+                // remove the conflict from the list
+                jtmsBeliefSet.removeConflict_NegCommand(obj.getCommandId());
+            }else {
+                // deleting a positive command that is inConflict with a negative command
+                //  this means that changes of this command were not applied or applied and then retracted (because of the conflict)
+                //  we only have to remove the reference of this positive command from the conflicts list
+                jtmsBeliefSet.removeConflict_PosCommand(obj.getCommandId());
+            }
+        }else{
+            //  deleting a command not in conflict
+            //      if the command is positive we need to undo the changes applied first
+            if (mode.getValue().equals("pos")){
+                obj.restoreStateRequired();
+                ep.update(obj.getFactHandle(),obj.getFactHandle().getObject());
+            }
+        }
+
+        if ( beliefSet.isEmpty() && fh.getEqualityKey().getStatus() == EqualityKey.JUSTIFIED ) {
+            // the set is empty, so delete form the EP, so things are cleaned up.
+            ep.delete(fh, fh.getObject(), getObjectTypeConf(beliefSet), context.getRuleOrigin(),
+                    null, activation != null ? activation.getTuple().getTupleSink() : null );
+        } else  {
+            // ??
+        }
+
+        if ( beliefSet.isEmpty() ) {
+            // if the beliefSet is empty, we must null the logical handle
+            EqualityKey key = fh.getEqualityKey();
+            key.setLogicalFactHandle( null );
+            key.setBeliefSet(null);
+
+            if ( key.getStatus() == EqualityKey.JUSTIFIED ) {
+                // if it's stated, there will be other handles, so leave it in the TMS
+                tms.remove( key );
+            }
+        }
+    }
+
+    // FAI-687
+    private boolean conflictsInPropertyUpdates(JTMSMode lastNode, JTMSMode prevNode){
+        UpdateRestoreCommand obj = (UpdateRestoreCommand) prevNode.getLogicalDependency().getObject();
+        return ((UpdateRestoreCommand) lastNode.getLogicalDependency().getObject()).conflicts_stateRequired_keyElements(obj);
+    }
+
     private boolean processBeliefSet(RuleImpl rule, Activation activation, Object payload, PropagationContext pctx, JTMSBeliefSet<M> jtmsBeliefSet, boolean wasDecided, boolean wasNegated, InternalFactHandle fh) {
         if ( !wasDecided && jtmsBeliefSet.isDecided()  ) {
             ep.insert(jtmsBeliefSet.getFactHandle(),
@@ -199,13 +363,14 @@ public class JTMSBeliefSystem<M extends JTMSMode<M>>
             return true;
         } else if ( wasDecided && !jtmsBeliefSet.isDecided() ) {
             // Handle Conflict
-            if ( STRICT ) {
-                throw new IllegalStateException( "FATAL : A fact and its negation have been asserted " + jtmsBeliefSet.getFactHandle().getObject() );
+            if (STRICT) {
+                throw new IllegalStateException("FATAL : A fact and its negation have been asserted " + jtmsBeliefSet.getFactHandle().getObject());
             }
 
             // was decided, now is not, so must be removed from the network. Leave in EP though, we only delete from that when the set is empty
             ep.delete(fh, fh.getObject(), getObjectTypeConf(jtmsBeliefSet), pctx.getRuleOrigin(),
-                      null, activation != null ? activation.getTuple().getTupleSink() : null );
+                    null, activation != null ? activation.getTuple().getTupleSink() : null);
+
             return true;
         } else if (wasNegated != jtmsBeliefSet.isNegated()) {
             // was decided, still is decided by the negation changed. This must be propagated through the engine
