@@ -19,6 +19,7 @@ import org.drools.core.BeliefSystemType;
 import org.drools.tms.beliefsystem.BeliefSystem;
 import org.drools.tms.beliefsystem.defeasible.DefeasibleBeliefSystem;
 import org.drools.tms.beliefsystem.jtms.JTMSBeliefSystem;
+import org.drools.tms.beliefsystem.newbs.NewBSBeliefSystem;
 import org.drools.tms.beliefsystem.simple.SimpleBeliefSystem;
 import org.drools.core.common.InternalWorkingMemoryEntryPoint;
 import org.drools.core.common.TruthMaintenanceSystem;
@@ -33,6 +34,8 @@ public class BeliefSystemFactory {
                 return new JTMSBeliefSystem( ep, tms );
             case DEFEASIBLE:
                 return new DefeasibleBeliefSystem( ep, tms );
+            case NEWBS:
+                return new NewBSBeliefSystem(ep, tms);
         }
         throw new UnsupportedOperationException();
     }

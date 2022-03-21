@@ -23,7 +23,8 @@ public enum BeliefSystemType {
 
     SIMPLE("simple"),
     JTMS("jtms"),
-    DEFEASIBLE("defeasible");
+    DEFEASIBLE("defeasible"),
+    NEWBS("newbs");
 
     private String string;
     BeliefSystemType( String string ) {
@@ -49,6 +50,8 @@ public enum BeliefSystemType {
             return JTMS;
         } else if( DEFEASIBLE.getId().equalsIgnoreCase( id ) ) {
             return DEFEASIBLE;
+        } else if (NEWBS.getId().equalsIgnoreCase( id )){
+            return NEWBS;
         }
         throw new IllegalArgumentException( "Illegal enum value '" + id + "' for BeliefSystem" );
     }
