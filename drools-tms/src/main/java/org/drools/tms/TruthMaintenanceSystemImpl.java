@@ -39,6 +39,8 @@ import org.drools.tms.beliefsystem.BeliefSystem;
 import org.drools.tms.beliefsystem.BeliefSystemMode;
 import org.drools.tms.beliefsystem.ModedAssertion;
 import org.drools.tms.beliefsystem.jtms.JTMSBeliefSetImpl;
+import org.drools.tms.beliefsystem.newbs.EndPointAdapter;
+import org.drools.tms.beliefsystem.newbs.NewSimpleBeliefSystem;
 import org.kie.api.runtime.rule.FactHandle;
 
 public class TruthMaintenanceSystemImpl implements TruthMaintenanceSystem {
@@ -65,7 +67,10 @@ public class TruthMaintenanceSystemImpl implements TruthMaintenanceSystem {
         this.equalityKeyMap = new ObjectHashMap();
         this.equalityKeyMap.setComparator( EqualityKeyComparator.getInstance() );
 
-        defaultBeliefSystem = BeliefSystemFactory.createBeliefSystem(ep.getReteEvaluator().getSessionConfiguration().getBeliefSystemType(), ep, this);
+        //defaultBeliefSystem = BeliefSystemFactory.createBeliefSystem(ep.getReteEvaluator().getSessionConfiguration().getBeliefSystemType(), ep, this);
+        EndPointAdapter epAdapter =  new EndPointAdapter(ep);
+        //NewSimpleBeliefSystem bsSecond = new NewSimpleBeliefSystem(epAdapter,ep.getObjectTypeConfigurationRegistry(),ep.getEntryPoint());
+        defaultBeliefSystem = new NewSimpleBeliefSystem(epAdapter,ep.getObjectTypeConfigurationRegistry(),ep.getEntryPoint(),this);
     }
 
     @Override
