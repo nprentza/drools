@@ -41,7 +41,6 @@ import org.drools.tms.beliefsystem.BeliefSystemMode;
 import org.drools.tms.beliefsystem.ModedAssertion;
 import org.drools.tms.beliefsystem.chainbs.EndPointAdapter;
 import org.drools.tms.beliefsystem.jtms.JTMSBeliefSetImpl;
-import org.drools.tms.beliefsystem.newbs.NewJTMSBeliefSystem;
 import org.drools.tms.beliefsystem.newbs.NewSimpleBeliefSystem;
 import org.kie.api.runtime.rule.FactHandle;
 
