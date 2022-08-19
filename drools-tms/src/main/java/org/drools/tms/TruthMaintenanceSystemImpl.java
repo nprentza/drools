@@ -19,6 +19,7 @@ package org.drools.tms;
 import java.util.Iterator;
 import java.util.function.BiFunction;
 
+import org.drools.core.BeliefSystemType;
 import org.drools.core.RuleBaseConfiguration.AssertBehaviour;
 import org.drools.core.beliefsystem.Mode;
 import org.drools.core.common.ClassAwareObjectStore;
@@ -38,7 +39,10 @@ import org.drools.tms.beliefsystem.BeliefSet;
 import org.drools.tms.beliefsystem.BeliefSystem;
 import org.drools.tms.beliefsystem.BeliefSystemMode;
 import org.drools.tms.beliefsystem.ModedAssertion;
+import org.drools.tms.beliefsystem.chainbs.EndPointAdapter;
 import org.drools.tms.beliefsystem.jtms.JTMSBeliefSetImpl;
+import org.drools.tms.beliefsystem.newbs.NewJTMSBeliefSystem;
+import org.drools.tms.beliefsystem.newbs.NewSimpleBeliefSystem;
 import org.kie.api.runtime.rule.FactHandle;
 
 public class TruthMaintenanceSystemImpl implements TruthMaintenanceSystem {
@@ -65,7 +69,16 @@ public class TruthMaintenanceSystemImpl implements TruthMaintenanceSystem {
         this.equalityKeyMap = new ObjectHashMap();
         this.equalityKeyMap.setComparator( EqualityKeyComparator.getInstance() );
 
-        defaultBeliefSystem = BeliefSystemFactory.createBeliefSystem(ep.getReteEvaluator().getSessionConfiguration().getBeliefSystemType(), ep, this);
+        // DROOLS-6921
+        BeliefSystemType bsType = ep.getReteEvaluator().getSessionConfiguration().getBeliefSystemType();
+        if (bsType==BeliefSystemType.SIMPLE){
+            EndPointAdapter epAdapter =  new EndPointAdapter(ep);
+            defaultBeliefSystem = new NewSimpleBeliefSystem(epAdapter,ep.getObjectTypeConfigurationRegistry(),ep.getEntryPoint(),this);
+        }
+        else{
+            defaultBeliefSystem = BeliefSystemFactory.createBeliefSystem(ep.getReteEvaluator().getSessionConfiguration().getBeliefSystemType(), ep, this);
+        }
+
     }
 
     @Override
