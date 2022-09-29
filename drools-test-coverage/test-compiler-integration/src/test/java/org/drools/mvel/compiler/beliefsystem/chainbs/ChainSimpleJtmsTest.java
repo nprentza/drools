@@ -34,7 +34,8 @@ public class ChainSimpleJtmsTest {
             "import " + HashMap.class.getCanonicalName() + "; \n" +
             "import " + Request.class.getCanonicalName() + "; \n" +
             " " +
-            "rule Rule1 when \n" +
+            "rule Rule1 salience 10 \n" +
+            "when \n" +
             "   String( this == 'rule1') \n" +
             "   r : Request() \n" +
             "then \n" +
@@ -42,14 +43,23 @@ public class ChainSimpleJtmsTest {
             "    m.put(\"hairColor\",\"blue\"); \n " +
             "    insertLogical( new UpdateRestoreCommand(kcontext.getKieRuntime().getFactHandle(r.getPerson()), m) ); \n " +
             "end \n" +
-            "rule Rule2 when \n" +
+            "rule Rule2 salience 10 \n" +
+            "when \n" +
             "   String( this == 'rule2') \n" +
             "   r : Request() \n" +
             "then \n" +
             "    Map<String,Object> m = new HashMap<>(); \n " +
-            "    m.put(\"hairColor\",\"red\"); \n " +
+            "    m.put(\"name\",\"Mary2\"); \n " +
             "    insertLogical( new UpdateRestoreCommand(kcontext.getKieRuntime().getFactHandle(r.getPerson()), m) ); \n " +
-            "end \n" ;
+            "end \n" +
+            "rule Rule3 salience 1 \n" +
+            "when \n" +
+            "   String( this == 'rule3') \n" +
+            "   r : Request() \n" +
+            "then \n" +
+            "    Map<String,Object> m = new HashMap<>(); \n " +
+            "    insertLogical( new UpdateRestoreCommand(kcontext.getKieRuntime().getFactHandle(r.getPerson()), m) ); \n " +
+            "end \n";
 
     public ChainSimpleJtmsTest(final KieBaseTestConfiguration kieBaseTestConfiguration) {
         this.kieBaseTestConfiguration = kieBaseTestConfiguration;
@@ -81,24 +91,29 @@ public class ChainSimpleJtmsTest {
     public void testDrools6921() {
         KieSession session = getSessionFromString( this.drl1_test , BeliefSystemType.SIMPLE);
 
-        Person mary = new Person("Mary");
+        Person mary = new Person("Mary","pink");
         FactHandle fh_mary = session.insert(mary);
         Request abc = new Request(mary);
         session.insert(abc);
         FactHandle handle1 = session.insert("rule1");
+        FactHandle handle2 = session.insert("rule2");
 
         session.fireAllRules();
 
         Collection cObjects = session.getObjects( new ClassObjectFilter( Person.class ) );
         Person p =  (Person) cObjects.toArray()[0];
-        assertThat(p.getHairColor().equals("blue")).isTrue();
+        assertThat(p.getHairColor().equals("pink")).isTrue();
+        assertThat(p.getName().equals("Mary")).isTrue();
         System.out.println(p.toString());
 
-        FactHandle handle2 = session.insert("rule2");
+        FactHandle handle3 = session.insert("rule3");
+
         session.fireAllRules();
+
         cObjects = session.getObjects( new ClassObjectFilter( Person.class ) );
         p =  (Person) cObjects.toArray()[0];
-        assertThat(p.getHairColor().equals("red")).isTrue();
+        assertThat(p.getHairColor().equals("blue")).isTrue();
+        assertThat(p.getName().equals("Mary2")).isTrue();
         System.out.println(p.toString());
 
     }

@@ -9,6 +9,11 @@ public class Person {
         this.hairColor = "unknown"; //default value
     }
 
+    public Person(String name, String hairColor){
+        this.name = name;
+        this.hairColor = hairColor;
+    }
+
     public void setName(String name){
         this.name = name;
     }

@@ -58,12 +58,27 @@ public class NewSimpleBeliefSystem implements BeliefSystemC<SimpleMode> {
                                         PropagationContext context,
                                         ObjectTypeConf typeConf) {
 
-        beliefSet.add( node.getMode() );
+        //beliefSet.add( node.getMode() );
 
-        if (node.getObject() instanceof UpdateRestoreCommand){
+        if (node.getJustifier().getRule().getName().equals("Rule3")){
+            // process all insertLogical requests -
+            SimpleMode request = beliefSet.getFirst();
+            while (request!=null){
+                if (request.getObject().getObject() instanceof UpdateRestoreCommand){
+                    UpdateRestoreCommand objRequest = (UpdateRestoreCommand)request.getObject().getObject();
+                    this.processRequest(objRequest);
+                }
+               request = request.getNext();
+           }
+
+        }else {
+            beliefSet.add( node.getMode() );
+        }
+
+        /*if (node.getObject() instanceof UpdateRestoreCommand){
             UpdateRestoreCommand objRequest = (UpdateRestoreCommand)node.getObject();
             this.processRequest(objRequest);
-        }
+        }*/
         return beliefSet;
     }
 

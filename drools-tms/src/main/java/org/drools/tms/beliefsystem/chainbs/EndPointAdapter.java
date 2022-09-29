@@ -14,7 +14,6 @@ import org.drools.tms.agenda.TruthMaintenanceSystemActivation;
 import org.drools.tms.beliefsystem.BeliefSet;
 import org.drools.tms.beliefsystem.ModedAssertion;
 
-
 public class EndPointAdapter implements BeliefSystemC {
 
     private InternalWorkingMemoryEntryPoint ep;
